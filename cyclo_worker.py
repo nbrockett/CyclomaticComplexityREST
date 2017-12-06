@@ -10,6 +10,7 @@ from radon.complexity import cc_rank, cc_visit
 
 from functools import wraps
 import time
+import json
 
 def time_it(f):
     @wraps(f)
@@ -24,11 +25,11 @@ def time_it(f):
 
 class CodeComplexityWorker:
 
-    def __init__(self, worker_id, worker_name, master_ip, master_port):
+    def __init__(self, worker_id, worker_name, master_ip, master_port, git_repo=''):
         # GIT repository settings
         self.worker_id = worker_id
         self.worker_name = worker_name
-        self.git_repository = "https://github.com/DLTK/DLTK"
+        self.git_repository = git_repo
         self.root_repo_dir = "./repo_worker_" + str(worker_id)
         self.master_address = "http://{0}:{1}".format(master_ip, master_port)
 
@@ -40,6 +41,7 @@ class CodeComplexityWorker:
         self.setup_gitrepo()
 
     def setup_gitrepo(self):
+        """ setup git repository """
 
         repo_dir = self.root_repo_dir
         if not os.path.exists(repo_dir):
@@ -81,7 +83,7 @@ class CodeComplexityWorker:
         # reset code complexity results for each file
         self.cc_files = {file: None for file in self.files}
 
-    @time_it
+    # @time_it
     def calculate_cyclomatic_complexity(self, commit_number):
         """ calculate cc for all files in current commit """
 
@@ -113,20 +115,21 @@ class CodeComplexityWorker:
             # task = response.text
             data = response.json()
             commit_number = data['commit_number']
+            status = data['status']
 
             # if no task stop worker
-            if commit_number == 'Done':
-                break
+            if status == 'done' or status == 'not ready':
+                print("Current master status {0}".format(status))
+                time.sleep(1)
+                continue
+
+
 
             # checkout to commit number:
             self.set_commit_state(commit_number)
 
             # calculate cyclomatic complexity
             print('worker {0} - calculating commit {1}'.format(self.worker_name, commit_number))
-            # if task == 'task1':
-            #     c = calculate_cyclomatic_complexity(10)
-            # else:
-            #     c = calculate_cyclomatic_complexity(1)
 
             cc = self.calculate_cyclomatic_complexity(commit_number)
 
@@ -159,12 +162,18 @@ if __name__ == "__main__":
     parser.add_argument(
         '--workerID',
         type=int,
-        default=1,
+        default=3,
         help='ID to identify worker'
     )
 
     FLAGS, unparsed = parser.parse_known_args()
 
+    # get gitrepo from config file
+    git_repo = None
+    with open('cyclo_config.json') as f:
+        config_json = json.loads(f.read())
+        git_repo = config_json['git_repo']
+
     worker_name = 'worker_{0}'.format(FLAGS.workerID)
-    worker = CodeComplexityWorker(FLAGS.workerID, worker_name, FLAGS.host, FLAGS.port)
+    worker = CodeComplexityWorker(FLAGS.workerID, worker_name, FLAGS.host, FLAGS.port, git_repo=git_repo)
     worker.listen_requests()
