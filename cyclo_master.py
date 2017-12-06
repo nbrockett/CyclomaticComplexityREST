@@ -9,17 +9,21 @@ from flask import json
 from flask import jsonify
 import os
 from git import Repo
+import time
 
 app = Flask(__name__)
 
 
 # list of tasks
 task_list = ['task1', 'task2', 'task3', 'task4', 'task5']
-
+# {commit_number: [t1, t2]}
+time_table = {}
 
 
 @app.route('/', methods=['GET'])
 def get():
+
+    print("getting!")
 
     if len(cc_manager.commits) == 0:
         commit_number = 'Done'
@@ -34,11 +38,13 @@ def get():
 
     resp = jsonify(data)
     resp.status_code = 200
+    time_table[commit_number] = [time.clock(), 0]
     return resp
 
 
 @app.route('/', methods=['POST'])
 def post():
+    print("posting!")
 
     if request.headers['CONTENT_TYPE'] == 'application/json':
 
@@ -46,6 +52,12 @@ def post():
 
         print("worker id: ", data['worker_id'])
         print("worker cc: ", data['cc'])
+        commit_number = data['commit_number']
+
+        time_table[commit_number][1] = time.clock()
+        time_table[commit_number].append(time_table[commit_number][1] - time_table[commit_number][0])
+        print("required time = ",  time_table[commit_number][2])
+
 
         # add cc result to manager
         cc_manager.add_cc(data['commit_number'], int(data['cc']))
@@ -94,6 +106,7 @@ class CodeComplexityMaster:
 
         if len(cc_manager.commits) == 0:
             print("COMPLETE, total CC = ", sum(self.cc_per_commit.values()))
+            print("COMPLETE, total time = ", sum([l[2] for l in time_table.values()]))
 
         # # check if all commits have returned
         # complete = True

@@ -8,14 +8,19 @@ from os import walk
 import radon
 from radon.complexity import cc_rank, cc_visit
 
-def calculate_cyclomatic_complexity(ctime=randint(1, 4)):
-    """ calculate cyclomatic complexity """
+from functools import wraps
+import time
 
-    # For now simulate by waiting
-    calc_time = ctime
-    # calc_time = 10
-    time.sleep(calc_time)
-    return calc_time
+def time_it(f):
+    @wraps(f)
+    def wrap(*args, **kw):
+        ts = time.time()
+        result = f(*args, **kw)
+        te = time.time()
+        print('func:%r args:[%r, %r] took: %2.4f sec' % (f.__name__, args, kw, te-ts))
+        return result
+    return wrap
+
 
 class CodeComplexityWorker:
 
@@ -76,6 +81,7 @@ class CodeComplexityWorker:
         # reset code complexity results for each file
         self.cc_files = {file: None for file in self.files}
 
+    @time_it
     def calculate_cyclomatic_complexity(self, commit_number):
         """ calculate cc for all files in current commit """
 
