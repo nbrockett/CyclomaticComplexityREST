@@ -14,7 +14,6 @@ import pandas as pd
 
 app = Flask(__name__)
 
-
 @app.route('/', methods=['GET'])
 def get_work():
     """ worker request work items here.
@@ -34,14 +33,6 @@ def get_work():
             cc_manager.is_finished = True
 
             print("All commits have been sent. Finishing up...")
-
-            # # wait for all returns
-            # returned = False
-            # while not returned:
-            #     returned = cc_manager.have_commits_returned('all')
-            #     time.sleep(1)
-            #     print("Waiting for returns..")
-
             cc_manager.finalise()
 
     else:
@@ -73,8 +64,6 @@ def post_result():
     t_end = time.clock()
     data = request.json
 
-    # print("worker id: ", data['worker_id'])
-    # print("worker cc: ", data['cc'])
     commit_number = data['commit_number']
 
     # add cc result to manager
@@ -161,6 +150,8 @@ class CodeComplexityMaster:
 
     def finalise(self):
 
+        total_time = time.clock() - cc_manager.start_time
+
         # check if all commits have returned
         if not self.have_commits_returned('all'):
             raise Exception("Not all commits have returned finished. Can't finalise")
@@ -170,7 +161,6 @@ class CodeComplexityMaster:
             self.time_table[commit_number].append(self.time_table[commit_number][1] - self.time_table[commit_number][0])
 
         total_cc = sum([x[0] for x in self.cc_per_commit.values()])
-        total_time = sum([l[2] for l in self.time_table.values()])
 
         print("COMPLETE, total CC = ", total_cc)
         print("COMPLETE, total time = ", total_time)

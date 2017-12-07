@@ -12,13 +12,18 @@ from functools import wraps
 import time
 import json
 
+
+cc_time = 0
+
 def time_it(f):
     @wraps(f)
     def wrap(*args, **kw):
         ts = time.time()
         result = f(*args, **kw)
         te = time.time()
-        print('func:%r args:[%r, %r] took: %2.4f sec' % (f.__name__, args, kw, te-ts))
+        # print('func:%r args:[%r, %r] took: %2.4f sec' % (f.__name__, args, kw, te-ts))
+        global cc_time
+        cc_time = te-ts
         return result
     return wrap
 
@@ -83,7 +88,7 @@ class CodeComplexityWorker:
         # reset code complexity results for each file
         self.cc_files = {file: None for file in self.files}
 
-    # @time_it
+    @time_it
     def calculate_cyclomatic_complexity(self, commit_number):
         """ calculate cc for all files in current commit """
 
@@ -136,7 +141,8 @@ class CodeComplexityWorker:
             stat_msg = '{} completed by worker {}'.format(commit_number, self.worker_name)
             cc_msg = str(cc)
 
-            post_msg = {'worker_id': self.worker_id, 'commit_number': str(commit_number), 'cc': cc_msg}
+            global cc_time
+            post_msg = {'worker_id': self.worker_id, 'commit_number': str(commit_number), 'cc': cc_msg, 'cc_time': cc_time}
 
             # post result to the server
             response = requests.post(self.master_address, json=post_msg)
@@ -162,7 +168,7 @@ if __name__ == "__main__":
     parser.add_argument(
         '--workerID',
         type=int,
-        default=3,
+        default=7,
         help='ID to identify worker'
     )
 
