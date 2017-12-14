@@ -4,14 +4,15 @@
 
 This Project was built using Python 3.6 and Flask
 
-Setting up the servers can be done by running the following commands:
+Setting up the server and clients can be done by running the following commands:
 
 ```
 python cyclo_master.py --host=[MASTER_IP] --port=[PORT]
 python cyclo_worker.py --host=[MASTER_IP] --port=[PORT]    
 
 Once cyclo_master is running, you can start as many workers as you want. 
-Each worker will start requesting once started
+Each worker will start requesting once started. The master will only start
+allocating tasks to worker by submitting a PUT request to the master with any content.
 ```
 
 - The selected repository can be changed in the cyclo_config.json file
@@ -26,5 +27,5 @@ Each worker will start requesting once started
 ![result](result1.png)
 
 As seen from the graph more nodes cleary reduce the total time 
-to calculate the cyclomatic complexity. The time saturates at 21s where the 
-IO operations become the bottleneck of the process
+to calculate the cyclomatic complexity. The time saturates at 21s with 
+5 nodes or more where IO operations become the bottleneck of the process.
